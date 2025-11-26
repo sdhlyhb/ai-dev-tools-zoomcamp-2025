@@ -2,6 +2,11 @@
 
 A modern, responsive task management web application built with Django. TaskFlow helps you organize, track, and complete your tasks efficiently with a clean, intuitive interface.
 
+
+
+https://github.com/user-attachments/assets/4f6431f0-039e-450d-a56d-ed160fa2152d
+
+
 ## Features
 
 ### Core Functionality
