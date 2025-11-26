@@ -33,10 +33,15 @@ A modern, responsive task management web application built with Django. TaskFlow
 ### Card View
 
 Tasks displayed in an organized card layout with visual indicators for status and urgency.
+<img width="773" height="479" alt="TODOAPP-desktop" src="https://github.com/user-attachments/assets/a223df61-ce49-4b09-9f7e-36af19acb283" />
+<img width="839" height="806" alt="Screenshot 2025-11-26 at 3 26 41 PM" src="https://github.com/user-attachments/assets/117f8041-aa48-498b-934c-435fe037c046" />
+
 
 ### List View
 
 Tabular view for quick scanning of multiple tasks with all key information.
+<img width="1170" height="725" alt="Screenshot 2025-11-26 at 3 30 35 PM 2" src="https://github.com/user-attachments/assets/654e1df9-f993-40da-8a87-59b97a003eb3" />
+
 
 ## Installation
 
