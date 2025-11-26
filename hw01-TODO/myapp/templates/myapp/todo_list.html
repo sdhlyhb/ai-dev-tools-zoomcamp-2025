@@ -1,0 +1,388 @@
+{% extends 'myapp/base.html' %}
+
+{% block title %}My Tasks - TaskFlow{% endblock %}
+
+{% block content %}
+<style>
+    .page-header {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .page-header h1 {
+        font-weight: 700;
+        color: #1d1d1f;
+        margin: 0;
+        font-size: 2.5rem;
+    }
+
+    .stats-row {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .stat-badge {
+        background: #f5f5f7;
+        border-radius: 12px;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        color: #6e6e73;
+        font-weight: 500;
+    }
+
+    .btn-group .btn {
+        border-radius: 10px;
+        border: 2px solid #e5e5ea;
+        background: white;
+        color: #1d1d1f;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .btn-group .btn.active {
+        background: linear-gradient(135deg, #007aff 0%, #5ac8fa 100%);
+        color: white;
+        border-color: transparent;
+    }
+
+    .btn-group .btn:hover:not(.active) {
+        background: #f5f5f7;
+        border-color: #007aff;
+    }
+
+    /* Mobile responsive styles */
+    @media (max-width: 768px) {
+        .page-header {
+            padding: 1.25rem;
+        }
+
+        .page-header h1 {
+            font-size: 1.75rem;
+        }
+
+        .page-header .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+
+        .stats-row {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .stat-badge {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        .page-header .d-flex.gap-2 {
+            width: 100%;
+            margin-top: 1rem;
+            flex-direction: column;
+            gap: 0.75rem !important;
+        }
+
+        .btn-group {
+            width: 100%;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+            font-size: 0.85rem;
+            padding: 0.5rem;
+        }
+
+        .btn-primary {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .page-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .stat-badge {
+            font-size: 0.75rem;
+        }
+    }
+</style>
+
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>📋 My TODOs</h1>
+            <div class="stats-row">
+                <span class="stat-badge">📊 Total: {{ total_count }}</span>
+                <span class="stat-badge">✅ Resolved: {{ resolved_count }}</span>
+                <span class="stat-badge">⏳ Pending: {{ pending_count }}</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-secondary active" id="cardViewBtn"
+                    onclick="switchView('card')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-grid-3x3-gap" viewBox="0 0 16 16">
+                        <path
+                            d="M4 2H2v2h2V2zm1 12v-2a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1zm0-5V7a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1zm0-5V2a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1zm5 10v-2a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1zm0-5V7a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1zm0-5V2a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1zM9 2v2h2V2H9zm5 0v2h2V2h-2zM4 7v2h2V7H4zm5 0v2h2V7H9zm5 0h-2v2h2V7zM4 12v2h2v-2H4zm5 0v2h2v-2H9zm5 0v2h2v-2h-2z" />
+                    </svg>
+                    Cards
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="listViewBtn" onclick="switchView('list')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-list-ul" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd"
+                            d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
+                    </svg>
+                    List
+                </button>
+            </div>
+            <a href="{% url 'todo_create' %}" class="btn btn-primary">
+                ➕ Create New TODO
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if todos %}
+<!-- Card View -->
+<div id="cardView" class="row">
+    {% for todo in todos %}
+    <div class="col-md-6 col-lg-4 mb-3">
+        <div class="card todo-card {% if todo.is_overdue %}todo-overdue{% endif %}">
+            <div class="card-body">
+                <h5 class="card-title {% if todo.is_resolved %}todo-resolved{% endif %}">
+                    {{ todo.title }}
+                </h5>
+
+                {% if todo.description %}
+                <p class="card-text {% if todo.is_resolved %}todo-resolved{% endif %}">
+                    {{ todo.description|truncatewords:20 }}
+                </p>
+                {% endif %}
+
+                <div class="mb-2">
+                    {% if todo.due_date %}
+                    <small class="text-muted">
+                        📅 Due: {{ todo.due_date|date:"M d, Y H:i" }}
+                        {% if todo.is_overdue %}
+                        <span class="badge bg-danger">Overdue</span>
+                        {% endif %}
+                    </small>
+                    <br>
+                    {% if not todo.is_resolved %}
+                    <small class="countdown fw-bold" data-due-date="{{ todo.due_date|date:'c' }}">
+                        ⏱️ Calculating...
+                    </small>
+                    {% endif %}
+                    {% endif %}
+                </div>
+
+                <div class="mb-2">
+                    {% if todo.is_resolved %}
+                    <span class="badge bg-success">✓ Resolved</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">⏳ Pending</span>
+                    {% endif %}
+                </div>
+
+                <small class="text-muted d-block mb-3">
+                    Created: {{ todo.created_at|date:"M d, Y" }}
+                </small>
+
+                <div class="btn-group btn-group-sm" role="group">
+                    <a href="{% url 'todo_toggle_resolved' todo.pk %}"
+                        class="btn btn-outline-{% if todo.is_resolved %}warning{% else %}success{% endif %}"
+                        onclick="return confirm('Toggle resolved status?')">
+                        {% if todo.is_resolved %}Unresolve{% else %}Resolve{% endif %}
+                    </a>
+                    <a href="{% url 'todo_edit' todo.pk %}" class="btn btn-outline-primary">Edit</a>
+                    <a href="{% url 'todo_delete' todo.pk %}" class="btn btn-outline-danger">Delete</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- List View -->
+<div id="listView" class="d-none">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Due Date</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for todo in todos %}
+                <tr class="{% if todo.is_overdue %}table-danger{% endif %}">
+                    <td>
+                        <a href="{% url 'todo_toggle_resolved' todo.pk %}" class="text-decoration-none"
+                            onclick="return confirm('Toggle resolved status?')">
+                            {% if todo.is_resolved %}
+                            <span class="badge bg-success">✓ Resolved</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">⏳ Pending</span>
+                            {% endif %}
+                        </a>
+                    </td>
+                    <td class="{% if todo.is_resolved %}todo-resolved{% endif %}">
+                        <strong>{{ todo.title }}</strong>
+                    </td>
+                    <td class="{% if todo.is_resolved %}todo-resolved{% endif %}">
+                        {{ todo.description|truncatewords:15|default:"-" }}
+                    </td>
+                    <td>
+                        {% if todo.due_date %}
+                        <small>{{ todo.due_date|date:"M d, Y H:i" }}</small>
+                        {% if todo.is_overdue %}
+                        <br><span class="badge bg-danger">Overdue</span>
+                        {% endif %}
+                        {% if not todo.is_resolved %}
+                        <br><small class="countdown text-primary fw-bold" data-due-date="{{ todo.due_date|date:'c' }}">
+                            ⏱️ Calculating...
+                        </small>
+                        {% endif %}
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small class="text-muted">{{ todo.created_at|date:"M d, Y" }}</small>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'todo_edit' todo.pk %}" class="btn btn-outline-primary" title="Edit">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                                    viewBox="0 0 16 16">
+                                    <path
+                                        d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z" />
+                                </svg>
+                            </a>
+                            <a href="{% url 'todo_delete' todo.pk %}" class="btn btn-outline-danger" title="Delete">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                                    viewBox="0 0 16 16">
+                                    <path
+                                        d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
+                                    <path fill-rule="evenodd"
+                                        d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" />
+                                </svg>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% else %}
+<div class="alert alert-info">
+    <h4>No TODOs yet!</h4>
+    <p>Start by creating your first TODO item.</p>
+    <a href="{% url 'todo_create' %}" class="btn btn-primary">Create Your First TODO</a>
+</div>
+{% endif %}
+
+<script>
+    function switchView(view) {
+        const cardView = document.getElementById('cardView');
+        const listView = document.getElementById('listView');
+        const cardBtn = document.getElementById('cardViewBtn');
+        const listBtn = document.getElementById('listViewBtn');
+
+        if (view === 'card') {
+            cardView.classList.remove('d-none');
+            listView.classList.add('d-none');
+            cardBtn.classList.add('active');
+            listBtn.classList.remove('active');
+            localStorage.setItem('todoView', 'card');
+        } else if (view === 'list') {
+            cardView.classList.add('d-none');
+            listView.classList.remove('d-none');
+            cardBtn.classList.remove('active');
+            listBtn.classList.add('active');
+            localStorage.setItem('todoView', 'list');
+        }
+    }
+
+    // Load saved view preference
+    document.addEventListener('DOMContentLoaded', function () {
+        const savedView = localStorage.getItem('todoView') || 'card';
+        switchView(savedView);
+
+        // Initialize and update countdowns
+        updateCountdowns();
+        setInterval(updateCountdowns, 1000);
+    });
+
+    function updateCountdowns() {
+        const countdownElements = document.querySelectorAll('.countdown');
+        const now = new Date();
+
+        countdownElements.forEach(element => {
+            const dueDateStr = element.getAttribute('data-due-date');
+            if (!dueDateStr) return;
+
+            const dueDate = new Date(dueDateStr);
+            const diffMs = dueDate - now;
+
+            // Clear previous color classes
+            element.classList.remove('text-danger', 'text-warning', 'text-success');
+
+            if (diffMs <= 0) {
+                // Overdue
+                const overdueDiff = Math.abs(diffMs);
+                element.textContent = '⏱️ Overdue by ' + formatTimeDiff(overdueDiff);
+                element.classList.add('text-danger');
+            } else {
+                // Time remaining
+                element.textContent = '⏱️ ' + formatTimeDiff(diffMs) + ' left';
+
+                // Color code based on urgency
+                if (diffMs < 24 * 60 * 60 * 1000) { // Less than 24 hours
+                    element.classList.add('text-danger');
+                } else if (diffMs < 3 * 24 * 60 * 60 * 1000) { // Less than 3 days
+                    element.classList.add('text-warning');
+                } else {
+                    element.classList.add('text-success');
+                }
+            }
+        });
+    }
+
+    function formatTimeDiff(milliseconds) {
+        const totalSeconds = Math.floor(milliseconds / 1000);
+        const totalMinutes = Math.floor(totalSeconds / 60);
+        const totalHours = Math.floor(totalMinutes / 60);
+        const days = Math.floor(totalHours / 24);
+
+        const hours = totalHours % 24;
+        const minutes = totalMinutes % 60;
+        const seconds = totalSeconds % 60;
+
+        if (days > 0) {
+            return `${days}d ${hours}h ${minutes}m`;
+        } else if (hours > 0) {
+            return `${hours}h ${minutes}m`;
+        } else if (minutes > 0) {
+            return `${minutes}m ${seconds}s`;
+        } else {
+            return `${seconds}s`;
+        }
+    }
+</script>
+{% endblock %}

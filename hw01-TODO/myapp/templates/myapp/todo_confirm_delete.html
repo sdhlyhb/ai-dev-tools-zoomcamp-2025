@@ -1,0 +1,41 @@
+{% extends 'myapp/base.html' %}
+
+{% block title %}Delete TODO{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h2>Delete TODO</h2>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <h5>⚠️ Are you sure?</h5>
+                    <p>Do you really want to delete the following TODO? This action cannot be undone.</p>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ todo.title }}</h5>
+                        {% if todo.description %}
+                        <p class="card-text">{{ todo.description }}</p>
+                        {% endif %}
+                        {% if todo.due_date %}
+                        <small class="text-muted">Due: {{ todo.due_date|date:"M d, Y H:i" }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                        <a href="{% url 'todo_list' %}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
