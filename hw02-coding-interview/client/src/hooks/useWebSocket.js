@@ -121,6 +121,14 @@ export const useWebSocket = (
       }
     });
 
+    // Execution result event
+    socket.on("execution_result_sync", (data) => {
+      console.log("⚡ Execution result received:", data);
+      if (data.userId !== userIdRef.current && onCodeUpdate) {
+        onCodeUpdate({ executionResult: data.result });
+      }
+    });
+
     // Error events
     socket.on("error", (data) => {
       console.error("⚠️ Socket error:", data);
@@ -171,12 +179,28 @@ export const useWebSocket = (
     [sessionId, isConnected]
   );
 
+  // Send execution result
+  const sendExecutionResult = useCallback(
+    (result) => {
+      if (socketRef.current && isConnected) {
+        socketRef.current.emit("execution_result", {
+          sessionId,
+          result,
+          userId: userIdRef.current,
+          timestamp: Date.now(),
+        });
+      }
+    },
+    [sessionId, isConnected]
+  );
+
   return {
     socket: socketRef.current,
     isConnected,
     activeUsers,
     sendCodeUpdate,
     sendLanguageChange,
+    sendExecutionResult,
     userId: userIdRef.current,
   };
 };

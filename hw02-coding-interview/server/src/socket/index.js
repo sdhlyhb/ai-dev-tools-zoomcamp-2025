@@ -167,6 +167,36 @@ export function initializeWebSocket(httpServer) {
     });
 
     /**
+     * Execution result
+     */
+    socket.on("execution_result", async (data) => {
+      try {
+        const { sessionId, result, userId, timestamp } = data;
+
+        if (!sessionId || !result || !userId) {
+          socket.emit("error", { message: "Invalid execution result data" });
+          return;
+        }
+
+        // Broadcast to other users in the room (exclude sender)
+        socket.to(sessionId).emit("execution_result_sync", {
+          result,
+          userId,
+          timestamp: timestamp || Date.now(),
+        });
+
+        console.log(
+          `⚡ Execution result broadcast in session ${sessionId} by ${userId}`
+        );
+      } catch (error) {
+        console.error("Error broadcasting execution result:", error);
+        socket.emit("error", {
+          message: "Failed to broadcast execution result",
+        });
+      }
+    });
+
+    /**
      * Disconnect
      */
     socket.on("disconnect", (reason) => {
