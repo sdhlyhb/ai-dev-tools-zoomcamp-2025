@@ -43,7 +43,7 @@ async function loadPyodide() {
     }
 
     // Wait a bit for the script to initialize
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     if (!window.loadPyodide) {
       throw new Error("Pyodide loader not available after script load");
@@ -211,7 +211,8 @@ sys.stderr = sys.__stderr__
     if (executionError) {
       return {
         success: false,
-        output: (stdout || "") + (stderr || "") + "\n\n" + String(executionError),
+        output:
+          (stdout || "") + (stderr || "") + "\n\n" + String(executionError),
         error: String(executionError),
         executionTime: `${executionTime}ms`,
       };
