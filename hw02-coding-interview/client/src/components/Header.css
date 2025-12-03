@@ -1,0 +1,226 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--bg-secondary-light);
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+body.dark .header {
+  background-color: var(--bg-secondary-dark);
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1.2rem;
+  white-space: nowrap;
+}
+
+.logo-icon {
+  font-size: 1.5rem;
+}
+
+.logo-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.session-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.session-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ccc;
+}
+
+.status-indicator.connected {
+  background-color: #4caf50;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-indicator.disconnected {
+  background-color: #f44336;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.status-text {
+  font-size: 0.85rem;
+}
+
+.language-selector {
+  position: relative;
+}
+
+.language-select {
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 12px;
+}
+
+.language-select:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+.btn-run,
+.btn-copy,
+.btn-theme {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  background-color: var(--bg-primary-light);
+  color: var(--text-primary-light);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+body.dark .btn-run,
+body.dark .btn-copy,
+body.dark .btn-theme {
+  border: 1px solid var(--border-dark);
+  background-color: var(--bg-primary-dark);
+  color: var(--text-primary-dark);
+}
+
+.btn-run:hover,
+.btn-copy:hover,
+.btn-theme:hover {
+  background-color: var(--bg-secondary-light);
+  border-color: #667eea;
+  transform: translateY(-1px);
+  opacity: 1;
+}
+
+body.dark .btn-run:hover,
+body.dark .btn-copy:hover,
+body.dark .btn-theme:hover {
+  background-color: var(--bg-secondary-dark);
+}
+
+.btn-run {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  font-weight: 600;
+}
+
+.btn-run:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  opacity: 0.9;
+}
+
+body.dark .btn-run {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.btn-theme {
+  font-size: 1.2rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0.5rem 1rem;
+  }
+
+  .header-left {
+    gap: 1rem;
+  }
+
+  .logo-text {
+    display: none;
+  }
+
+  .session-title {
+    font-size: 0.9rem;
+  }
+
+  .btn-run,
+  .btn-copy {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .language-select {
+    padding: 0.4rem 1.75rem 0.4rem 0.5rem;
+    font-size: 0.85rem;
+  }
+}

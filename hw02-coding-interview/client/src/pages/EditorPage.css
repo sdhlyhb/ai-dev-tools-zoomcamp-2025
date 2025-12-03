@@ -1,0 +1,315 @@
+.editor-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 1rem;
+}
+
+.loader {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border-light);
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+body.dark .loader {
+  border-color: var(--border-dark);
+  border-top-color: #667eea;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-container p {
+  font-size: 1.1rem;
+  opacity: 0.7;
+}
+
+/* Editor Content Layout */
+.editor-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.editor-wrapper {
+  flex: 1;
+  overflow: hidden;
+  transition: flex 0.3s ease;
+}
+
+.editor-wrapper.with-output {
+  flex: 0 0 60%;
+}
+
+/* Output Panel */
+.output-panel {
+  flex: 0 0 40%;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border-light);
+  background-color: var(--bg-primary-light);
+  animation: slideInRight 0.3s ease-out;
+}
+
+body.dark .output-panel {
+  border-left: 1px solid var(--border-dark);
+  background-color: var(--bg-primary-dark);
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.output-panel-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+body.dark .output-panel-header {
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.output-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.output-panel-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.output-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.execution-time {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--bg-secondary-light);
+  border-radius: 4px;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+body.dark .execution-time {
+  background-color: var(--bg-secondary-dark);
+}
+
+.status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge.success {
+  background-color: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+}
+
+.status-badge.error {
+  background-color: rgba(244, 67, 54, 0.15);
+  color: #f44336;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  color: var(--text-secondary-light);
+  line-height: 1;
+  transition: all 0.2s;
+  border-radius: 4px;
+}
+
+body.dark .close-btn {
+  color: var(--text-secondary-dark);
+}
+
+.close-btn:hover {
+  color: var(--text-primary-light);
+  background-color: var(--bg-secondary-light);
+}
+
+body.dark .close-btn:hover {
+  color: var(--text-primary-dark);
+  background-color: var(--bg-secondary-dark);
+}
+
+.output-panel-body {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.output-panel-body pre {
+  margin: 0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  background-color: var(--bg-secondary-light);
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  color: var(--text-primary-light);
+}
+
+body.dark .output-panel-body pre {
+  background-color: var(--bg-secondary-dark);
+  border-color: var(--border-dark);
+  color: var(--text-primary-dark);
+}
+
+.output-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
+  text-align: center;
+}
+
+.output-placeholder p {
+  opacity: 0.5;
+  font-size: 1rem;
+}
+
+/* Scrollbar styling for output panel */
+.output-panel-body::-webkit-scrollbar {
+  width: 10px;
+}
+
+.output-panel-body::-webkit-scrollbar-track {
+  background: var(--bg-primary-light);
+}
+
+body.dark .output-panel-body::-webkit-scrollbar-track {
+  background: var(--bg-primary-dark);
+}
+
+.output-panel-body::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 5px;
+}
+
+body.dark .output-panel-body::-webkit-scrollbar-thumb {
+  background: var(--border-dark);
+}
+
+.output-panel-body::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary-light);
+}
+
+body.dark .output-panel-body::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary-dark);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .editor-content {
+    flex-direction: column;
+  }
+
+  .editor-wrapper {
+    flex: 1;
+  }
+
+  .editor-wrapper.with-output {
+    flex: 0 0 50%;
+  }
+
+  .output-panel {
+    flex: 0 0 50%;
+    border-left: none;
+    border-top: 1px solid var(--border-light);
+    animation: slideInUp 0.3s ease-out;
+  }
+
+  body.dark .output-panel {
+    border-top: 1px solid var(--border-dark);
+  }
+
+  @keyframes slideInUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .output-panel-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .output-header-left {
+    flex-wrap: wrap;
+  }
+
+  .output-panel-header h3 {
+    font-size: 1rem;
+  }
+
+  .output-meta {
+    gap: 0.4rem;
+  }
+
+  .execution-time,
+  .status-badge {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .output-panel-body {
+    padding: 0.75rem;
+  }
+
+  .output-panel-body pre {
+    font-size: 0.85rem;
+    padding: 0.75rem;
+  }
+}
