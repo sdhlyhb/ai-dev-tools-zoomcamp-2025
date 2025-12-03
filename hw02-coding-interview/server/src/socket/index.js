@@ -155,6 +155,7 @@ export function initializeWebSocket(httpServer) {
         io.to(sessionId).emit("language_updated", {
           language,
           userId,
+          clearOutput: true,
         });
 
         console.log(

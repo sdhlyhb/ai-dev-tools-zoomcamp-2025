@@ -24,9 +24,20 @@ function EditorPage({ theme, toggleTheme }) {
     }
     if (data.language !== undefined) {
       setLanguage(data.language);
+      // If language is updated with clearOutput, also update the code with default comment
+      if (data.clearOutput === true) {
+        const newDefaultCode =
+          data.language === "python"
+            ? "# Start coding here...\n"
+            : "// Start coding here...\n";
+        setCode(newDefaultCode);
+      }
     }
     if (data.executionResult !== undefined) {
       setOutput(data.executionResult);
+    }
+    if (data.clearOutput === true) {
+      setOutput(null);
     }
   }, []);
 
@@ -101,18 +112,16 @@ function EditorPage({ theme, toggleTheme }) {
       setLanguage(newLanguage);
       sendLanguageChange(newLanguage);
 
-      // Update code comment syntax if it's the default comment
-      const isDefaultJsComment = code.trim() === "// Start coding here...";
-      const isDefaultPyComment = code.trim() === "# Start coding here...";
+      // Clear code and show only default comment for the new language
+      const newDefaultCode =
+        newLanguage === "python"
+          ? "# Start coding here...\n"
+          : "// Start coding here...\n";
+      setCode(newDefaultCode);
+      sendCodeUpdate(newDefaultCode);
 
-      if (isDefaultJsComment || isDefaultPyComment) {
-        const newDefaultCode =
-          newLanguage === "python"
-            ? "# Start coding here...\n"
-            : "// Start coding here...\n";
-        setCode(newDefaultCode);
-        sendCodeUpdate(newDefaultCode);
-      }
+      // Clear output section
+      setOutput(null);
 
       // Preload Python runtime when switching to Python
       if (newLanguage === "python") {
@@ -121,7 +130,7 @@ function EditorPage({ theme, toggleTheme }) {
         );
       }
     },
-    [sendLanguageChange, sendCodeUpdate, code]
+    [sendLanguageChange, sendCodeUpdate]
   );
 
   // Show toast notification

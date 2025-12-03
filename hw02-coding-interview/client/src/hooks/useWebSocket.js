@@ -117,7 +117,10 @@ export const useWebSocket = (
     socket.on("language_updated", (data) => {
       console.log("🔤 Language updated:", data);
       if (onCodeUpdate) {
-        onCodeUpdate({ language: data.language });
+        onCodeUpdate({
+          language: data.language,
+          clearOutput: data.clearOutput,
+        });
       }
     });
 
