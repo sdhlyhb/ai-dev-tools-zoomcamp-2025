@@ -23,10 +23,23 @@ class MockDatabase {
    */
   createSession(data = {}) {
     const sessionId = nanoid(12);
+    const language = data.language || "javascript";
+
+    // Get default code based on language
+    const getDefaultCode = (lang) => {
+      switch (lang) {
+        case "python":
+          return "# Start coding here...\n";
+        case "javascript":
+        default:
+          return "// Start coding here...\n";
+      }
+    };
+
     const session = {
       sessionId,
-      language: data.language || "javascript",
-      code: data.code || "// Start coding here...\n",
+      language,
+      code: data.code || getDefaultCode(language),
       title: data.title || "Untitled Session",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

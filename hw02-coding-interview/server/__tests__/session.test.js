@@ -24,6 +24,17 @@ describe("Session API Tests", () => {
       expect(response.body).toHaveProperty("shareableLink");
     });
 
+    it("should create a Python session with Python comment syntax", async () => {
+      const response = await request(app)
+        .post("/api/sessions")
+        .send({ language: "python" })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.session.language).toBe("python");
+      expect(response.body.session.code).toBe("# Start coding here...\n");
+    });
+
     it("should create a new session with custom values", async () => {
       const customSession = {
         language: "python",

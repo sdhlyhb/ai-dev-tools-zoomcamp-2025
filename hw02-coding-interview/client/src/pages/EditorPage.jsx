@@ -80,8 +80,21 @@ function EditorPage({ theme, toggleTheme }) {
     (newLanguage) => {
       setLanguage(newLanguage);
       sendLanguageChange(newLanguage);
+
+      // Update code comment syntax if it's the default comment
+      const isDefaultJsComment = code.trim() === "// Start coding here...";
+      const isDefaultPyComment = code.trim() === "# Start coding here...";
+
+      if (isDefaultJsComment || isDefaultPyComment) {
+        const newDefaultCode =
+          newLanguage === "python"
+            ? "# Start coding here...\n"
+            : "// Start coding here...\n";
+        setCode(newDefaultCode);
+        sendCodeUpdate(newDefaultCode);
+      }
     },
-    [sendLanguageChange]
+    [sendLanguageChange, sendCodeUpdate, code]
   );
 
   // Show toast notification
