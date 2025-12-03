@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import Editor from "../components/Editor";
 import { getSession } from "../api/session";
 import { useWebSocket } from "../hooks/useWebSocket";
+import { executeCode, preloadPython } from "../utils/codeExecutor";
 import "./EditorPage.css";
 
 function EditorPage({ theme, toggleTheme }) {
@@ -52,6 +53,13 @@ function EditorPage({ theme, toggleTheme }) {
           setCode(result.session.code);
           setLanguage(result.session.language);
           setSessionTitle(result.session.title);
+
+          // Preload Python runtime if needed
+          if (result.session.language === "python") {
+            preloadPython().catch((err) =>
+              console.warn("Failed to preload Python:", err)
+            );
+          }
         } else {
           showToast("Session not found", "error");
         }
@@ -93,6 +101,13 @@ function EditorPage({ theme, toggleTheme }) {
         setCode(newDefaultCode);
         sendCodeUpdate(newDefaultCode);
       }
+
+      // Preload Python runtime when switching to Python
+      if (newLanguage === "python") {
+        preloadPython().catch((err) =>
+          console.warn("Failed to preload Python:", err)
+        );
+      }
     },
     [sendLanguageChange, sendCodeUpdate, code]
   );
@@ -103,43 +118,39 @@ function EditorPage({ theme, toggleTheme }) {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Run code execution
+  // Run code execution (client-side using WASM)
   const handleRunCode = async () => {
     setIsRunning(true);
-    showToast("Running code...", "info");
+    setShowOutput(true);
+
+    // Show loading state in output
+    setOutput({
+      success: true,
+      output:
+        language === "python"
+          ? "Loading Python runtime (first time may take a few seconds)...\n"
+          : "Executing code...\n",
+      executionTime: "...",
+    });
 
     try {
-      // Mock code execution - in production, this would call a backend API
-      // Simulate execution delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const result = await executeCode(code, language, 10000); // 10 second timeout
 
-      // Simulate output based on language
-      let mockOutput;
-      if (language === "javascript") {
-        mockOutput = {
-          success: true,
-          output: "Code executed successfully!\nOutput would appear here...",
-          executionTime: "124ms",
-        };
-      } else if (language === "python") {
-        mockOutput = {
-          success: true,
-          output: "Code executed successfully!\nOutput would appear here...",
-          executionTime: "156ms",
-        };
+      setOutput(result);
+
+      if (result.success) {
+        showToast("Code executed successfully!", "success");
+      } else {
+        showToast("Code execution failed", "error");
       }
-
-      setOutput(mockOutput);
-      setShowOutput(true);
-      showToast("Code executed successfully!", "success");
     } catch (error) {
       console.error("Code execution failed:", error);
       setOutput({
         success: false,
-        output: "Error: Code execution failed\n" + error.message,
+        output: error.message || "Unexpected error during execution",
+        error: error.message,
         executionTime: "0ms",
       });
-      setShowOutput(true);
       showToast("Code execution failed", "error");
     } finally {
       setIsRunning(false);
