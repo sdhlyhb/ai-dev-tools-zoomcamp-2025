@@ -36,7 +36,7 @@ export function initializeWebSocket(httpServer) {
         }
 
         // Check if session exists
-        const session = db.getSession(sessionId);
+        const session = await db.getSession(sessionId);
         if (!session) {
           socket.emit("error", { message: "Session not found" });
           return;
@@ -47,7 +47,7 @@ export function initializeWebSocket(httpServer) {
         connectedUsers.set(socket.id, { userId, sessionId });
 
         // Add user to session
-        const activeUsers = db.addUser(sessionId, userId);
+        const activeUsers = await db.addUser(sessionId, userId);
 
         console.log(`👤 User ${userId} joined session ${sessionId}`);
 
@@ -84,7 +84,7 @@ export function initializeWebSocket(httpServer) {
         socket.leave(sessionId);
 
         // Remove user from session
-        const activeUsers = db.removeUser(sessionId, userId);
+        const activeUsers = await db.removeUser(sessionId, userId);
 
         console.log(`👤 User ${userId} left session ${sessionId}`);
 
@@ -114,7 +114,7 @@ export function initializeWebSocket(httpServer) {
         }
 
         // Update session in database
-        db.updateSession(sessionId, { code });
+        await db.updateSession(sessionId, { code });
 
         // Broadcast to other users in the room (exclude sender)
         socket.to(sessionId).emit("code_sync", {
@@ -149,7 +149,7 @@ export function initializeWebSocket(httpServer) {
         }
 
         // Update session in database
-        db.updateSession(sessionId, { language });
+        await db.updateSession(sessionId, { language });
 
         // Broadcast to all users in the room (including sender)
         io.to(sessionId).emit("language_updated", {

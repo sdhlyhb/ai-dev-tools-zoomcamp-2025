@@ -1,27 +1,39 @@
 import { nanoid } from "nanoid";
 import { config } from "../config/index.js";
+import { query, testConnection, initializeSchema } from "./postgres.js";
 
 /**
- * Mock in-memory database
- * This will be replaced with a real database (e.g., PostgreSQL, MongoDB)
+ * PostgreSQL database implementation
  */
-class MockDatabase {
+class Database {
   constructor() {
-    this.sessions = new Map();
-    this.users = new Map(); // sessionId -> Set of userIds
     this.cleanupInterval = null;
+    this.initialized = false;
+  }
 
-    // Initialize demo session
-    this.initializeDemoSession();
+  /**
+   * Initialize database
+   */
+  async initialize() {
+    if (this.initialized) return;
 
-    // Start cleanup job
+    const connected = await testConnection();
+    if (!connected) {
+      throw new Error("Failed to connect to database");
+    }
+
+    await initializeSchema();
+    await this.initializeDemoSession();
     this.startCleanupJob();
+
+    this.initialized = true;
+    console.log("✅ Database initialized");
   }
 
   /**
    * Create a new session
    */
-  createSession(data = {}) {
+  async createSession(data = {}) {
     const sessionId = nanoid(12);
     const language = data.language || "javascript";
 
@@ -36,154 +48,173 @@ class MockDatabase {
       }
     };
 
-    const session = {
-      sessionId,
-      language,
-      code: data.code || getDefaultCode(language),
-      title: data.title || "Untitled Session",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      activeUsers: 0,
-      expiresAt: new Date(
-        Date.now() + config.session.ttlHours * 60 * 60 * 1000
-      ).toISOString(),
-    };
+    const code = data.code || getDefaultCode(language);
+    const title = data.title || "Untitled Session";
+    const expiresAt = new Date(
+      Date.now() + config.session.ttlHours * 60 * 60 * 1000
+    );
 
-    this.sessions.set(sessionId, session);
-    this.users.set(sessionId, new Set());
+    const result = await query(
+      `INSERT INTO sessions (session_id, language, code, title, expires_at)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [sessionId, language, code, title, expiresAt]
+    );
 
+    const session = this.mapSessionFromDb(result.rows[0]);
     return session;
   }
 
   /**
    * Get session by ID
    */
-  getSession(sessionId) {
-    const session = this.sessions.get(sessionId);
-    if (!session) {
+  async getSession(sessionId) {
+    const result = await query(
+      `SELECT s.*, COUNT(DISTINCT su.user_id) as active_users
+       FROM sessions s
+       LEFT JOIN session_users su ON s.session_id = su.session_id
+       WHERE s.session_id = $1 AND s.expires_at > NOW()
+       GROUP BY s.id`,
+      [sessionId]
+    );
+
+    if (result.rows.length === 0) {
       return null;
     }
 
-    // Check if session expired
-    if (new Date(session.expiresAt) < new Date()) {
-      this.deleteSession(sessionId);
-      return null;
-    }
-
-    return { ...session };
+    return this.mapSessionFromDb(result.rows[0]);
   }
 
   /**
    * Update session
    */
-  updateSession(sessionId, updates) {
-    const session = this.sessions.get(sessionId);
-    if (!session) {
+  async updateSession(sessionId, updates) {
+    const setClauses = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (updates.code !== undefined) {
+      setClauses.push(`code = $${paramCount++}`);
+      values.push(updates.code);
+    }
+    if (updates.language !== undefined) {
+      setClauses.push(`language = $${paramCount++}`);
+      values.push(updates.language);
+    }
+    if (updates.title !== undefined) {
+      setClauses.push(`title = $${paramCount++}`);
+      values.push(updates.title);
+    }
+
+    if (setClauses.length === 0) {
+      return await this.getSession(sessionId);
+    }
+
+    values.push(sessionId);
+
+    const result = await query(
+      `UPDATE sessions SET ${setClauses.join(", ")}
+       WHERE session_id = $${paramCount}
+       RETURNING *`,
+      values
+    );
+
+    if (result.rows.length === 0) {
       return null;
     }
 
-    const updatedSession = {
-      ...session,
-      ...updates,
-      sessionId, // Prevent ID override
-      updatedAt: new Date().toISOString(),
-    };
-
-    this.sessions.set(sessionId, updatedSession);
-    return { ...updatedSession };
+    return this.mapSessionFromDb(result.rows[0]);
   }
 
   /**
    * Delete session
    */
-  deleteSession(sessionId) {
-    const deleted = this.sessions.delete(sessionId);
-    this.users.delete(sessionId);
-    return deleted;
+  async deleteSession(sessionId) {
+    const result = await query("DELETE FROM sessions WHERE session_id = $1", [
+      sessionId,
+    ]);
+    return result.rowCount > 0;
   }
 
   /**
    * Get all sessions (for testing/admin)
    */
-  getAllSessions() {
-    return Array.from(this.sessions.values());
+  async getAllSessions() {
+    const result = await query(
+      `SELECT s.*, COUNT(DISTINCT su.user_id) as active_users
+       FROM sessions s
+       LEFT JOIN session_users su ON s.session_id = su.session_id
+       WHERE s.expires_at > NOW()
+       GROUP BY s.id
+       ORDER BY s.created_at DESC`
+    );
+    return result.rows.map((row) => this.mapSessionFromDb(row));
   }
 
   /**
    * Add user to session
    */
-  addUser(sessionId, userId) {
-    if (!this.users.has(sessionId)) {
-      this.users.set(sessionId, new Set());
-    }
+  async addUser(sessionId, userId) {
+    await query(
+      `INSERT INTO session_users (session_id, user_id)
+       VALUES ($1, $2)
+       ON CONFLICT (session_id, user_id) DO NOTHING`,
+      [sessionId, userId]
+    );
 
-    this.users.get(sessionId).add(userId);
-
-    // Update active users count
-    const session = this.sessions.get(sessionId);
-    if (session) {
-      session.activeUsers = this.users.get(sessionId).size;
-      this.sessions.set(sessionId, session);
-    }
-
-    return this.users.get(sessionId).size;
+    return await this.getActiveUserCount(sessionId);
   }
 
   /**
    * Remove user from session
    */
-  removeUser(sessionId, userId) {
-    if (!this.users.has(sessionId)) {
-      return 0;
-    }
+  async removeUser(sessionId, userId) {
+    await query(
+      "DELETE FROM session_users WHERE session_id = $1 AND user_id = $2",
+      [sessionId, userId]
+    );
 
-    this.users.get(sessionId).delete(userId);
-    const activeUsers = this.users.get(sessionId).size;
-
-    // Update active users count
-    const session = this.sessions.get(sessionId);
-    if (session) {
-      session.activeUsers = activeUsers;
-      this.sessions.set(sessionId, session);
-    }
-
-    return activeUsers;
+    return await this.getActiveUserCount(sessionId);
   }
 
   /**
    * Get active users in session
    */
-  getSessionUsers(sessionId) {
-    if (!this.users.has(sessionId)) {
-      return [];
-    }
+  async getSessionUsers(sessionId) {
+    const result = await query(
+      `SELECT user_id, joined_at
+       FROM session_users
+       WHERE session_id = $1
+       ORDER BY joined_at`,
+      [sessionId]
+    );
 
-    return Array.from(this.users.get(sessionId)).map((userId) => ({
-      userId,
-      connectedAt: new Date().toISOString(), // Mock data
-      lastActivity: new Date().toISOString(),
+    return result.rows.map((row) => ({
+      userId: row.user_id,
+      connectedAt: row.joined_at,
+      lastActivity: row.joined_at,
     }));
   }
 
   /**
    * Get active user count
    */
-  getActiveUserCount(sessionId) {
-    if (!this.users.has(sessionId)) {
-      return 0;
-    }
-    return this.users.get(sessionId).size;
+  async getActiveUserCount(sessionId) {
+    const result = await query(
+      `SELECT COUNT(*) as count
+       FROM session_users
+       WHERE session_id = $1`,
+      [sessionId]
+    );
+    return parseInt(result.rows[0].count);
   }
 
   /**
    * Initialize demo session
    */
-  initializeDemoSession() {
+  async initializeDemoSession() {
     const demoSessionId = "demo-session";
-    const demoSession = {
-      sessionId: demoSessionId,
-      language: "javascript",
-      code: `// Welcome to CodePad! 🚀
+    const demoCode = `// Welcome to CodeSyncPad! 🚀
 // This is a collaborative code editor
 // Try changing the code and see it sync in real-time
 
@@ -196,33 +227,30 @@ console.log('Fibonacci sequence:');
 for (let i = 0; i < 10; i++) {
   console.log(\`fib(\${i}) = \${fibonacci(i)}\`);
 }
-`,
-      title: "Demo Session",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      activeUsers: 0,
-      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year
-    };
+`;
 
-    this.sessions.set(demoSessionId, demoSession);
-    this.users.set(demoSessionId, new Set());
+    const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
+
+    await query(
+      `INSERT INTO sessions (session_id, language, code, title, expires_at)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (session_id) DO UPDATE
+       SET code = EXCLUDED.code, title = EXCLUDED.title`,
+      [demoSessionId, "javascript", demoCode, "Demo Session", expiresAt]
+    );
   }
 
   /**
    * Cleanup expired sessions
    */
-  cleanupExpiredSessions() {
-    const now = new Date();
-    let cleaned = 0;
+  async cleanupExpiredSessions() {
+    const result = await query(
+      `DELETE FROM sessions
+       WHERE expires_at < NOW()
+       AND session_id != 'demo-session'`
+    );
 
-    for (const [sessionId, session] of this.sessions.entries()) {
-      if (sessionId === "demo-session") continue; // Keep demo session
-
-      if (new Date(session.expiresAt) < now) {
-        this.deleteSession(sessionId);
-        cleaned++;
-      }
-    }
+    const cleaned = result.rowCount;
 
     if (cleaned > 0) {
       console.log(`🧹 Cleaned up ${cleaned} expired sessions`);
@@ -236,8 +264,12 @@ for (let i = 0; i < 10; i++) {
    */
   startCleanupJob() {
     // Run cleanup every hour
-    this.cleanupInterval = setInterval(() => {
-      this.cleanupExpiredSessions();
+    this.cleanupInterval = setInterval(async () => {
+      try {
+        await this.cleanupExpiredSessions();
+      } catch (error) {
+        console.error("Cleanup job error:", error.message);
+      }
     }, 60 * 60 * 1000);
   }
 
@@ -254,25 +286,45 @@ for (let i = 0; i < 10; i++) {
   /**
    * Clear all data (for testing)
    */
-  clear() {
-    this.sessions.clear();
-    this.users.clear();
-    this.initializeDemoSession();
+  async clear() {
+    await query("DELETE FROM sessions WHERE session_id != 'demo-session'");
+    await query("DELETE FROM session_users");
+    await this.initializeDemoSession();
   }
 
   /**
    * Get database stats
    */
-  getStats() {
+  async getStats() {
+    const sessionsResult = await query(
+      "SELECT COUNT(*) as count FROM sessions WHERE expires_at > NOW()"
+    );
+    const usersResult = await query(
+      "SELECT COUNT(*) as count FROM session_users"
+    );
+
     return {
-      totalSessions: this.sessions.size,
-      totalActiveUsers: Array.from(this.users.values()).reduce(
-        (sum, set) => sum + set.size,
-        0
-      ),
+      totalSessions: parseInt(sessionsResult.rows[0].count),
+      totalActiveUsers: parseInt(usersResult.rows[0].count),
+    };
+  }
+
+  /**
+   * Map database row to session object
+   */
+  mapSessionFromDb(row) {
+    return {
+      sessionId: row.session_id,
+      language: row.language,
+      code: row.code,
+      title: row.title,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      expiresAt: row.expires_at,
+      activeUsers: parseInt(row.active_users || 0),
     };
   }
 }
 
 // Export singleton instance
-export const db = new MockDatabase();
+export const db = new Database();

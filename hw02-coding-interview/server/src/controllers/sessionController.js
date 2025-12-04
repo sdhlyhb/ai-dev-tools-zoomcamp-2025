@@ -10,11 +10,11 @@ export const sessionController = {
    * Create a new session
    * POST /api/sessions
    */
-  createSession: (req, res) => {
+  createSession: async (req, res) => {
     try {
       const { language, code, title } = req.body;
 
-      const session = db.createSession({
+      const session = await db.createSession({
         language,
         code,
         title,
@@ -43,11 +43,11 @@ export const sessionController = {
    * Get session by ID
    * GET /api/sessions/:sessionId
    */
-  getSession: (req, res) => {
+  getSession: async (req, res) => {
     try {
       const { sessionId } = req.params;
 
-      const session = db.getSession(sessionId);
+      const session = await db.getSession(sessionId);
 
       if (!session) {
         return res.status(404).json({
@@ -75,7 +75,7 @@ export const sessionController = {
    * Update session
    * PATCH /api/sessions/:sessionId
    */
-  updateSession: (req, res) => {
+  updateSession: async (req, res) => {
     try {
       const { sessionId } = req.params;
       const { code, language, title } = req.body;
@@ -99,7 +99,7 @@ export const sessionController = {
         });
       }
 
-      const session = db.updateSession(sessionId, {
+      const session = await db.updateSession(sessionId, {
         ...(code !== undefined && { code }),
         ...(language !== undefined && { language }),
         ...(title !== undefined && { title }),
@@ -131,7 +131,7 @@ export const sessionController = {
    * Delete session
    * DELETE /api/sessions/:sessionId
    */
-  deleteSession: (req, res) => {
+  deleteSession: async (req, res) => {
     try {
       const { sessionId } = req.params;
 
@@ -144,7 +144,7 @@ export const sessionController = {
         });
       }
 
-      const deleted = db.deleteSession(sessionId);
+      const deleted = await db.deleteSession(sessionId);
 
       if (!deleted) {
         return res.status(404).json({
@@ -172,12 +172,12 @@ export const sessionController = {
    * Get active users in session
    * GET /api/sessions/:sessionId/users
    */
-  getSessionUsers: (req, res) => {
+  getSessionUsers: async (req, res) => {
     try {
       const { sessionId } = req.params;
 
       // Check if session exists
-      const session = db.getSession(sessionId);
+      const session = await db.getSession(sessionId);
       if (!session) {
         return res.status(404).json({
           success: false,
@@ -186,7 +186,7 @@ export const sessionController = {
         });
       }
 
-      const users = db.getSessionUsers(sessionId);
+      const users = await db.getSessionUsers(sessionId);
 
       res.json({
         success: true,
