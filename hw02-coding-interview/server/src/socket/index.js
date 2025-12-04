@@ -198,6 +198,54 @@ export function initializeWebSocket(httpServer) {
     });
 
     /**
+     * Typing started
+     */
+    socket.on("typing_start", async (data) => {
+      try {
+        const { sessionId, userId } = data;
+
+        if (!sessionId || !userId) {
+          return;
+        }
+
+        // Broadcast to ALL users in the room (including sender for testing)
+        io.to(sessionId).emit("typing_started", {
+          userId,
+        });
+
+        console.log(
+          `⌨️  User ${userId} started typing in session ${sessionId}`
+        );
+      } catch (error) {
+        console.error("Error broadcasting typing start:", error);
+      }
+    });
+
+    /**
+     * Typing stopped
+     */
+    socket.on("typing_stop", async (data) => {
+      try {
+        const { sessionId, userId } = data;
+
+        if (!sessionId || !userId) {
+          return;
+        }
+
+        // Broadcast to ALL users in the room (including sender for testing)
+        io.to(sessionId).emit("typing_stopped", {
+          userId,
+        });
+
+        console.log(
+          `⌨️  User ${userId} stopped typing in session ${sessionId}`
+        );
+      } catch (error) {
+        console.error("Error broadcasting typing stop:", error);
+      }
+    });
+
+    /**
      * Disconnect
      */
     socket.on("disconnect", (reason) => {

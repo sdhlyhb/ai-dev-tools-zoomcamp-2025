@@ -9,13 +9,17 @@ const SOCKET_URL = import.meta.env.VITE_WS_URL || "http://localhost:3000";
  * @param {Function} onCodeUpdate - Callback when code is updated
  * @param {Function} onUserJoined - Callback when user joins
  * @param {Function} onUserLeft - Callback when user leaves
+ * @param {Function} onTypingStart - Callback when user starts typing
+ * @param {Function} onTypingStop - Callback when user stops typing
  * @returns {Object} Socket instance and connection state
  */
 export const useWebSocket = (
   sessionId,
   onCodeUpdate,
   onUserJoined,
-  onUserLeft
+  onUserLeft,
+  onTypingStart,
+  onTypingStop
 ) => {
   const socketRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -132,6 +136,22 @@ export const useWebSocket = (
       }
     });
 
+    // Typing started event
+    socket.on("typing_started", (data) => {
+      console.log("⌨️  User started typing:", data);
+      if (onTypingStart) {
+        onTypingStart(data);
+      }
+    });
+
+    // Typing stopped event
+    socket.on("typing_stopped", (data) => {
+      console.log("⌨️  User stopped typing:", data);
+      if (onTypingStop) {
+        onTypingStop(data);
+      }
+    });
+
     // Error events
     socket.on("error", (data) => {
       console.error("⚠️ Socket error:", data);
@@ -151,7 +171,14 @@ export const useWebSocket = (
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [sessionId, onCodeUpdate, onUserJoined, onUserLeft]);
+  }, [
+    sessionId,
+    onCodeUpdate,
+    onUserJoined,
+    onUserLeft,
+    onTypingStart,
+    onTypingStop,
+  ]);
 
   // Send code update
   const sendCodeUpdate = useCallback(
@@ -197,6 +224,26 @@ export const useWebSocket = (
     [sessionId, isConnected]
   );
 
+  // Send typing start
+  const sendTypingStart = useCallback(() => {
+    if (socketRef.current && isConnected) {
+      socketRef.current.emit("typing_start", {
+        sessionId,
+        userId: userIdRef.current,
+      });
+    }
+  }, [sessionId, isConnected]);
+
+  // Send typing stop
+  const sendTypingStop = useCallback(() => {
+    if (socketRef.current && isConnected) {
+      socketRef.current.emit("typing_stop", {
+        sessionId,
+        userId: userIdRef.current,
+      });
+    }
+  }, [sessionId, isConnected]);
+
   return {
     socket: socketRef.current,
     isConnected,
@@ -204,6 +251,8 @@ export const useWebSocket = (
     sendCodeUpdate,
     sendLanguageChange,
     sendExecutionResult,
+    sendTypingStart,
+    sendTypingStop,
     userId: userIdRef.current,
   };
 };

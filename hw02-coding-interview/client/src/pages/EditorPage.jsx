@@ -1,11 +1,32 @@
 import { useParams } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Header from "../components/Header";
 import Editor from "../components/Editor";
 import { getSession } from "../api/session";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { executeCode, preloadPython } from "../utils/codeExecutor";
 import "./EditorPage.css";
+
+// Color palette for user indicators
+const USER_COLORS = [
+  "#667eea", // Purple
+  "#f093fb", // Pink
+  "#4facfe", // Blue
+  "#43e97b", // Green
+  "#fa709a", // Rose
+  "#feca57", // Yellow
+  "#ff6348", // Orange
+  "#00d2d3", // Cyan
+];
+
+// Generate consistent color for userId
+const getUserColor = (userId) => {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return USER_COLORS[Math.abs(hash) % USER_COLORS.length];
+};
 
 function EditorPage({ theme, toggleTheme }) {
   const { sessionId } = useParams();
@@ -16,6 +37,9 @@ function EditorPage({ theme, toggleTheme }) {
   const [toast, setToast] = useState(null);
   const [output, setOutput] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [typingUsers, setTypingUsers] = useState(new Set());
+  const typingTimeoutRef = useRef(null);
+  const isTypingRef = useRef(false);
 
   // Handle code updates from WebSocket
   const handleCodeUpdate = useCallback((data) => {
@@ -49,6 +73,33 @@ function EditorPage({ theme, toggleTheme }) {
   // Handle user left
   const handleUserLeft = useCallback((data) => {
     showToast(`User left (${data.activeUsers} active)`, "info");
+    // Remove user from typing users when they leave
+    setTypingUsers((prev) => {
+      const updated = new Set(prev);
+      updated.delete(data.userId);
+      return updated;
+    });
+  }, []);
+
+  // Handle typing start
+  const handleTypingStart = useCallback((data) => {
+    console.log("🔵 handleTypingStart called:", data);
+    setTypingUsers((prev) => {
+      const updated = new Set(prev).add(data.userId);
+      console.log("🔵 Updated typingUsers:", Array.from(updated));
+      return updated;
+    });
+  }, []);
+
+  // Handle typing stop
+  const handleTypingStop = useCallback((data) => {
+    console.log("🔴 handleTypingStop called:", data);
+    setTypingUsers((prev) => {
+      const updated = new Set(prev);
+      updated.delete(data.userId);
+      console.log("🔴 Updated typingUsers:", Array.from(updated));
+      return updated;
+    });
   }, []);
 
   // Initialize WebSocket connection
@@ -58,11 +109,16 @@ function EditorPage({ theme, toggleTheme }) {
     sendCodeUpdate,
     sendLanguageChange,
     sendExecutionResult,
+    sendTypingStart,
+    sendTypingStop,
+    userId,
   } = useWebSocket(
     sessionId,
     handleCodeUpdate,
     handleUserJoined,
-    handleUserLeft
+    handleUserLeft,
+    handleTypingStart,
+    handleTypingStop
   );
 
   // Load session data
@@ -102,8 +158,25 @@ function EditorPage({ theme, toggleTheme }) {
     (newCode) => {
       setCode(newCode);
       sendCodeUpdate(newCode);
+
+      // Typing indicator logic
+      if (!isTypingRef.current) {
+        isTypingRef.current = true;
+        sendTypingStart();
+      }
+
+      // Clear existing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      // Set timeout to stop typing after 2 seconds of inactivity
+      typingTimeoutRef.current = setTimeout(() => {
+        isTypingRef.current = false;
+        sendTypingStop();
+      }, 2000);
     },
-    [sendCodeUpdate]
+    [sendCodeUpdate, sendTypingStart, sendTypingStop]
   );
 
   // Handle language change
@@ -227,6 +300,33 @@ function EditorPage({ theme, toggleTheme }) {
             onChange={handleCodeChange}
             theme={theme}
           />
+
+          {/* Typing Indicators */}
+          {console.log(
+            "📊 Rendering with typingUsers:",
+            Array.from(typingUsers),
+            "size:",
+            typingUsers.size
+          )}
+
+          {typingUsers.size > 0 && (
+            <div className="typing-indicators">
+              {Array.from(typingUsers).map((typingUserId) => (
+                <div
+                  key={typingUserId}
+                  className="typing-indicator"
+                  style={{ color: getUserColor(typingUserId) }}>
+                  <span className="typing-user">User {typingUserId}</span>
+                  <span className="typing-text"> is typing</span>
+                  <span className="typing-dots">
+                    <span>.</span>
+                    <span>.</span>
+                    <span>.</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="output-panel">
