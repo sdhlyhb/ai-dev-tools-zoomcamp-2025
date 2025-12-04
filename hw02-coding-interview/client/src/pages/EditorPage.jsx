@@ -235,14 +235,12 @@ function EditorPage({ theme, toggleTheme }) {
               <h3>Output</h3>
               {output && (
                 <div className="output-meta">
-                  <span className="execution-time">
-                    ⚡ {output.executionTime}
-                  </span>
+                  <span className="execution-time">{output.executionTime}</span>
                   <span
                     className={`status-badge ${
                       output.success ? "success" : "error"
                     }`}>
-                    {output.success ? "✓ Success" : "✗ Error"}
+                    {output.success ? "Success" : "Error"}
                   </span>
                 </div>
               )}
@@ -253,9 +251,9 @@ function EditorPage({ theme, toggleTheme }) {
               <pre>{output.output}</pre>
             ) : (
               <div className="output-placeholder">
-                <p>💡 Click "Run" to execute your code</p>
+                <p>Run your code to see output</p>
                 <p className="output-hint">
-                  Results will be shared with all collaborative users
+                  Results sync across all active sessions
                 </p>
               </div>
             )}
