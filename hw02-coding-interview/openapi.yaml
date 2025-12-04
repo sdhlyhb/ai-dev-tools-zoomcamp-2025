@@ -1,0 +1,785 @@
+openapi: 3.0.3
+info:
+  title: CollabCodePad API
+  description: |
+    Real-time collaborative code editor API for creating and managing coding sessions.
+
+    ## Features
+    - Create and manage coding sessions
+    - Real-time code synchronization via WebSocket
+    - Support for multiple programming languages (JavaScript, Python)
+    - Code execution in sandboxed environment
+    - User presence tracking
+
+    ## WebSocket Events
+    The API uses Socket.io for real-time communication on `/socket.io` endpoint.
+
+    ### Client → Server Events:
+    - `join_session`: Join a coding session
+    - `leave_session`: Leave a coding session
+    - `code_update`: Send code changes
+    - `language_change`: Change programming language
+
+    ### Server → Client Events:
+    - `connect`: Connection established
+    - `disconnect`: Connection closed
+    - `full_sync`: Initial session state
+    - `code_sync`: Code update from other users
+    - `user_joined`: User joined session
+    - `user_left`: User left session
+    - `language_updated`: Language changed
+    - `error`: Error occurred
+
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@collabcodepad.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.collabcodepad.com
+    description: Production server
+
+tags:
+  - name: sessions
+    description: Session management operations
+  - name: languages
+    description: Programming language operations
+  - name: execution
+    description: Code execution operations
+
+paths:
+  /api/sessions:
+    post:
+      tags:
+        - sessions
+      summary: Create a new coding session
+      description: Creates a new collaborative coding session with initial code and language settings
+      operationId: createSession
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                language:
+                  type: string
+                  enum: [javascript, python]
+                  default: javascript
+                  description: Programming language for the session
+                code:
+                  type: string
+                  default: "// Start coding here...\n"
+                  description: Initial code content
+                title:
+                  type: string
+                  default: "Untitled Session"
+                  description: Session title
+              example:
+                language: javascript
+                code: "// Welcome to CodePad\nconsole.log('Hello, World!');"
+                title: "My Coding Session"
+      responses:
+        "201":
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - session
+                  - shareableLink
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  session:
+                    $ref: "#/components/schemas/Session"
+                  shareableLink:
+                    type: string
+                    format: uri
+                    description: Shareable URL for the session
+                    example: "http://localhost:5173/session/abc123xyz"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/sessions/{sessionId}:
+    get:
+      tags:
+        - sessions
+      summary: Get session by ID
+      description: Retrieves session data including code, language, and metadata
+      operationId: getSession
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          description: Unique session identifier
+          schema:
+            type: string
+            example: "abc123xyz"
+      responses:
+        "200":
+          description: Session retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - session
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  session:
+                    $ref: "#/components/schemas/Session"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+    patch:
+      tags:
+        - sessions
+      summary: Update session
+      description: Updates session data (code, language, or title)
+      operationId: updateSession
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          description: Unique session identifier
+          schema:
+            type: string
+            example: "abc123xyz"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  description: Updated code content
+                language:
+                  type: string
+                  enum: [javascript, python]
+                  description: Updated programming language
+                title:
+                  type: string
+                  description: Updated session title
+              example:
+                code: "console.log('Updated code');"
+                language: "javascript"
+      responses:
+        "200":
+          description: Session updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - session
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  session:
+                    $ref: "#/components/schemas/Session"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+    delete:
+      tags:
+        - sessions
+      summary: Delete session
+      description: Deletes a coding session and disconnects all users
+      operationId: deleteSession
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          description: Unique session identifier
+          schema:
+            type: string
+            example: "abc123xyz"
+      responses:
+        "200":
+          description: Session deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Session deleted successfully"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/languages:
+    get:
+      tags:
+        - languages
+      summary: Get supported languages
+      description: Returns a list of all supported programming languages with metadata
+      operationId: getSupportedLanguages
+      responses:
+        "200":
+          description: Languages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - languages
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  languages:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Language"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/execute:
+    post:
+      tags:
+        - execution
+      summary: Execute code
+      description: |
+        Executes code in a sandboxed environment and returns the output.
+
+        **Security Notes:**
+        - Code runs in isolated container
+        - 5-second execution timeout
+        - Memory limited to 128MB
+        - No network access from code
+        - File system access restricted
+      operationId: executeCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - language
+              properties:
+                code:
+                  type: string
+                  description: Code to execute
+                  example: "console.log('Hello, World!');"
+                language:
+                  type: string
+                  enum: [javascript, python]
+                  description: Programming language
+                  example: "javascript"
+                sessionId:
+                  type: string
+                  description: Optional session ID for context
+                  example: "abc123xyz"
+      responses:
+        "200":
+          description: Code executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "408":
+          description: Execution timeout
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - error
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Execution timeout after 5 seconds"
+                  executionTime:
+                    type: string
+                    example: "5000ms"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/sessions/{sessionId}/users:
+    get:
+      tags:
+        - sessions
+      summary: Get active users in session
+      description: Returns list of currently connected users in a session
+      operationId: getSessionUsers
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          description: Unique session identifier
+          schema:
+            type: string
+            example: "abc123xyz"
+      responses:
+        "200":
+          description: Active users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - users
+                  - count
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+                  count:
+                    type: integer
+                    description: Total number of active users
+                    example: 3
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /health:
+    get:
+      tags:
+        - system
+      summary: Health check
+      description: Returns server health status
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                    description: Server uptime in seconds
+
+components:
+  schemas:
+    Session:
+      type: object
+      required:
+        - sessionId
+        - language
+        - code
+        - title
+        - createdAt
+        - activeUsers
+      properties:
+        sessionId:
+          type: string
+          description: Unique session identifier
+          example: "abc123xyz"
+        language:
+          type: string
+          enum: [javascript, python]
+          description: Programming language
+          example: "javascript"
+        code:
+          type: string
+          description: Current code content
+          example: "console.log('Hello, World!');"
+        title:
+          type: string
+          description: Session title
+          example: "My Coding Session"
+        createdAt:
+          type: string
+          format: date-time
+          description: Session creation timestamp
+          example: "2025-12-03T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2025-12-03T10:35:00Z"
+        activeUsers:
+          type: integer
+          description: Number of currently connected users
+          example: 2
+          minimum: 0
+
+    Language:
+      type: object
+      required:
+        - value
+        - label
+        - extension
+      properties:
+        value:
+          type: string
+          description: Language identifier
+          example: "javascript"
+        label:
+          type: string
+          description: Display name
+          example: "JavaScript"
+        extension:
+          type: string
+          description: File extension
+          example: "js"
+        version:
+          type: string
+          description: Runtime version
+          example: "Node.js 20.x"
+
+    ExecutionResult:
+      type: object
+      required:
+        - success
+        - output
+        - executionTime
+      properties:
+        success:
+          type: boolean
+          description: Whether execution completed without errors
+          example: true
+        output:
+          type: string
+          description: Standard output and error combined
+          example: "Hello, World!\n"
+        executionTime:
+          type: string
+          description: Execution duration
+          example: "124ms"
+        error:
+          type: string
+          description: Error message if execution failed
+          example: "SyntaxError: Unexpected token"
+
+    User:
+      type: object
+      required:
+        - userId
+        - connectedAt
+      properties:
+        userId:
+          type: string
+          description: Unique user identifier
+          example: "user_abc123"
+        connectedAt:
+          type: string
+          format: date-time
+          description: Connection timestamp
+          example: "2025-12-03T10:30:00Z"
+        lastActivity:
+          type: string
+          format: date-time
+          description: Last activity timestamp
+          example: "2025-12-03T10:35:00Z"
+
+    Error:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error message
+          example: "Session not found"
+        code:
+          type: string
+          description: Error code
+          example: "SESSION_NOT_FOUND"
+
+    WebSocketEvent:
+      type: object
+      description: WebSocket event structure
+      required:
+        - event
+        - data
+      properties:
+        event:
+          type: string
+          description: Event name
+          example: "code_update"
+        data:
+          type: object
+          description: Event payload
+          example:
+            sessionId: "abc123xyz"
+            code: "console.log('Updated');"
+            userId: "user_abc123"
+            timestamp: 1701601800000
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            success: false
+            error: "Invalid language specified"
+            code: "INVALID_LANGUAGE"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            success: false
+            error: "Session not found"
+            code: "SESSION_NOT_FOUND"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            success: false
+            error: "An unexpected error occurred"
+            code: "INTERNAL_ERROR"
+
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Optional API key for rate limiting and analytics
+
+security:
+  - ApiKey: []
+  - {} # Allow unauthenticated access
+
+# WebSocket Events Documentation
+x-websocket-events:
+  client-to-server:
+    join_session:
+      description: Join a coding session room
+      payload:
+        type: object
+        required:
+          - sessionId
+          - userId
+        properties:
+          sessionId:
+            type: string
+            example: "abc123xyz"
+          userId:
+            type: string
+            example: "user_abc123"
+      response:
+        - event: full_sync
+          description: Initial session state
+        - event: user_joined
+          description: Broadcast to other users
+
+    leave_session:
+      description: Leave a coding session room
+      payload:
+        type: object
+        required:
+          - sessionId
+          - userId
+        properties:
+          sessionId:
+            type: string
+          userId:
+            type: string
+      response:
+        - event: user_left
+          description: Broadcast to other users
+
+    code_update:
+      description: Send code changes
+      payload:
+        type: object
+        required:
+          - sessionId
+          - code
+          - userId
+          - timestamp
+        properties:
+          sessionId:
+            type: string
+          code:
+            type: string
+          userId:
+            type: string
+          timestamp:
+            type: integer
+            format: int64
+      response:
+        - event: code_sync
+          description: Broadcast to other users
+
+    language_change:
+      description: Change programming language
+      payload:
+        type: object
+        required:
+          - sessionId
+          - language
+          - userId
+        properties:
+          sessionId:
+            type: string
+          language:
+            type: string
+            enum: [javascript, python]
+          userId:
+            type: string
+      response:
+        - event: language_updated
+          description: Broadcast to all users
+
+  server-to-client:
+    connect:
+      description: Connection established
+      payload:
+        type: object
+        properties:
+          socketId:
+            type: string
+
+    disconnect:
+      description: Connection closed
+      payload:
+        type: object
+        properties:
+          reason:
+            type: string
+
+    full_sync:
+      description: Initial session state after joining
+      payload:
+        type: object
+        required:
+          - code
+          - language
+          - activeUsers
+        properties:
+          code:
+            type: string
+          language:
+            type: string
+          activeUsers:
+            type: integer
+
+    code_sync:
+      description: Code update from another user
+      payload:
+        type: object
+        required:
+          - code
+          - userId
+          - timestamp
+        properties:
+          code:
+            type: string
+          userId:
+            type: string
+          timestamp:
+            type: integer
+
+    user_joined:
+      description: User joined the session
+      payload:
+        type: object
+        required:
+          - userId
+          - activeUsers
+        properties:
+          userId:
+            type: string
+          activeUsers:
+            type: integer
+
+    user_left:
+      description: User left the session
+      payload:
+        type: object
+        required:
+          - userId
+          - activeUsers
+        properties:
+          userId:
+            type: string
+          activeUsers:
+            type: integer
+
+    language_updated:
+      description: Language changed
+      payload:
+        type: object
+        required:
+          - language
+          - userId
+        properties:
+          language:
+            type: string
+          userId:
+            type: string
+
+    error:
+      description: Error occurred
+      payload:
+        type: object
+        required:
+          - message
+        properties:
+          message:
+            type: string
+          code:
+            type: string
