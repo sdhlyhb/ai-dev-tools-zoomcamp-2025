@@ -691,6 +691,30 @@ body.dark .footer-bottom-links a:hover {
   color: var(--text-secondary-dark);
 }
 
+/* Footer Credit */
+.footer-credit {
+  padding: 16px 48px;
+  text-align: center;
+  border-top: 1px solid var(--border-light);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+body.dark .footer-credit {
+  border-top: 1px solid var(--border-dark);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.footer-credit p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-tertiary-light);
+  font-weight: 500;
+}
+
+body.dark .footer-credit p {
+  color: var(--text-tertiary-dark);
+}
+
 @media (max-width: 768px) {
   .footer-content {
     grid-template-columns: 1fr;

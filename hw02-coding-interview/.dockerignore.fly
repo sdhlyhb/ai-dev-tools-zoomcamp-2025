@@ -1,0 +1,28 @@
+# Fly.io deployment - ignore unnecessary files
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*.md
+!README.md
+.vscode
+.idea
+coverage
+.DS_Store
+dist
+build
+
+# Keep only what we need
+!client/
+!server/
+!deploy/
+
+# Docker specific
+docker-compose.yml
+Dockerfile
+client/Dockerfile
+server/Dockerfile
+.dockerignore
