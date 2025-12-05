@@ -2,6 +2,11 @@
 
 A real-time collaborative code editor with instant execution capabilities, built for modern web development and coding interviews.
 
+## Video Demo
+
+
+https://github.com/user-attachments/assets/021051f9-0f2c-409e-b95e-4144508c3b31
+
 
 
 ## 🚀 Live Demo
