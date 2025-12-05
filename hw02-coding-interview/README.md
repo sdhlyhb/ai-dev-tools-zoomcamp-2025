@@ -2,6 +2,12 @@
 
 A real-time collaborative code editor with instant execution capabilities, built for modern web development and coding interviews.
 
+
+
+## 🚀 Live Demo
+
+Visit the live application: [CodeSyncPad on Render](https://codesyncpad.onrender.com)
+
 ## 🌟 Features
 
 - **Real-time Collaboration**: Multiple users can edit code simultaneously with instant synchronization
@@ -13,9 +19,7 @@ A real-time collaborative code editor with instant execution capabilities, built
 - **Dark/Light Theme**: Toggle between themes for comfortable coding
 - **WebSocket Support**: Real-time communication with automatic reconnection
 
-## 🚀 Live Demo
 
-Visit the live application: [CodeSyncPad on Render](https://your-app-name.onrender.com)
 
 ## 🛠️ Tech Stack
 
