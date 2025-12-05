@@ -14,7 +14,7 @@
         "envVars":
           [
             { "key": "NODE_ENV", "value": "production" },
-            { "key": "PORT", "value": "10000" },
+            { "key": "BACKEND_PORT", "value": "3000" },
             {
               "key": "DATABASE_URL",
               "fromDatabase":
