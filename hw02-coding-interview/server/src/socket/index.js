@@ -248,7 +248,7 @@ export function initializeWebSocket(httpServer) {
     /**
      * Disconnect
      */
-    socket.on("disconnect", (reason) => {
+    socket.on("disconnect", async (reason) => {
       console.log(`🔌 Client disconnected: ${socket.id} - ${reason}`);
 
       // Get user info
