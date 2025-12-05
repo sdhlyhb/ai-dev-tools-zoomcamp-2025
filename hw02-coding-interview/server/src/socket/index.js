@@ -257,7 +257,7 @@ export function initializeWebSocket(httpServer) {
         const { userId, sessionId } = userInfo;
 
         // Remove user from session
-        const activeUsers = db.removeUser(sessionId, userId);
+        const activeUsers = await db.removeUser(sessionId, userId);
 
         // Notify other users in the room
         socket.to(sessionId).emit("user_left", {
