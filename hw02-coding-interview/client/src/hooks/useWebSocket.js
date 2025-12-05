@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { io } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.VITE_WS_URL || "http://localhost:3000";
+// In production (served by Nginx), use relative URL (same origin)
+// In development, use localhost
+const SOCKET_URL =
+  import.meta.env.MODE === "production"
+    ? window.location.origin
+    : import.meta.env.VITE_WS_URL || "http://localhost:3000";
 
 /**
  * Custom hook for WebSocket connection with reconnection logic

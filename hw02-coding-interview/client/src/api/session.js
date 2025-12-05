@@ -1,7 +1,11 @@
 // API calls for backend communication
 
+// In production (served by Nginx), use relative URLs
+// In development, use localhost
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+  import.meta.env.MODE === "production"
+    ? "/api"
+    : import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 /**
  * Create a new code session
