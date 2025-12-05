@@ -6,6 +6,7 @@ import compression from "compression";
 import { config } from "./config/index.js";
 import routes from "./routes/index.js";
 import { initializeWebSocket } from "./socket/index.js";
+import { db } from "./db/index.js";
 
 // Create Express app
 const app = express();
@@ -76,8 +77,11 @@ const io = initializeWebSocket(httpServer);
 if (config.nodeEnv !== "test") {
   const PORT = config.port;
 
-  httpServer.listen(PORT, () => {
-    console.log(`
+  // Initialize database and start server
+  db.initialize()
+    .then(() => {
+      httpServer.listen(PORT, () => {
+        console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║                                                       ║
 ║   🚀 CollabCodePad Server                            ║
@@ -89,7 +93,12 @@ if (config.nodeEnv !== "test") {
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
     `);
-  });
+      });
+    })
+    .catch((error) => {
+      console.error("Failed to start server:", error);
+      process.exit(1);
+    });
 
   // Graceful shutdown
   process.on("SIGTERM", () => {

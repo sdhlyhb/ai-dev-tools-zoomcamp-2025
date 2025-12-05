@@ -83,7 +83,7 @@ function Home({ theme, toggleTheme }) {
         </div>
 
         <div className="home-content">
-          <div className="hero-badge">Next-Generation IDE</div>
+          <div className="hero-badge">Vibe Coding project by Serena Huang</div>
           <h1>CodeSyncPad</h1>
           <p>Real-time collaborative code editor with instant execution</p>
 

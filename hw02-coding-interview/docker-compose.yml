@@ -1,0 +1,85 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: codesyncpad-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: codesyncpad
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password_change_in_production
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/src/db/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - codesyncpad-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: codesyncpad-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres_password_change_in_production@postgres:5432/codesyncpad
+      CLIENT_URL: http://localhost
+      SESSION_TTL_HOURS: 24
+      MAX_ACTIVE_USERS: 50
+      EXECUTION_TIMEOUT_MS: 5000
+      EXECUTION_MEMORY_LIMIT_MB: 128
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    networks:
+      - codesyncpad-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3000/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend with Nginx
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: codesyncpad-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - codesyncpad-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  codesyncpad-network:
+    driver: bridge

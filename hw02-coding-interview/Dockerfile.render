@@ -1,0 +1,58 @@
+# Multi-stage Dockerfile for Render deployment
+# Builds both frontend and backend into a single container
+
+# Stage 1: Build Frontend
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app/client
+
+COPY client/package*.json ./
+RUN npm ci
+
+COPY client/ ./
+RUN npm run build
+
+# Stage 2: Build Backend
+FROM node:20-alpine AS backend-builder
+
+WORKDIR /app/server
+
+COPY server/package*.json ./
+RUN npm ci --only=production
+
+COPY server/ ./
+
+# Stage 3: Production Runtime
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install nginx and curl for health checks
+RUN apk add --no-cache nginx curl
+
+# Copy backend
+COPY --from=backend-builder /app/server /app/server
+
+# Copy frontend build to nginx html directory
+COPY --from=frontend-builder /app/client/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY deploy/nginx.render.conf /etc/nginx/http.d/default.conf
+
+# Create startup script
+COPY deploy/start-render.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+# Create nginx directories and set permissions
+RUN mkdir -p /var/lib/nginx/tmp /var/log/nginx && \
+    chown -R nginx:nginx /var/lib/nginx /var/log/nginx /usr/share/nginx/html
+
+# Expose Render's default port
+EXPOSE 10000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:10000/api/health || exit 1
+
+# Start both nginx and node
+CMD ["/app/start.sh"]
